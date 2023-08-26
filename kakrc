@@ -9,99 +9,169 @@ evaluate-commands %sh{
 }
 bundle-noload kak-bundle https://github.com/jdugan6240/kak-bundle
 
-# #bundle kakoune-smooth-scroll "https://github.com/caksoylar/kakoune-smooth-scroll" %{
-# #    set-option -add global scroll_options max_duration=80
-# #    # hook global WinDisplay .* %{
-# #        # smooth-scroll-enable
-# #    # }
-# #
-# #    hook global WinCreate [^*].* %{
-# #        hook -once window WinDisplay .* %{
-# #            smooth-scroll-enable
-# #        }
-# #    }
-# #}
-#
 bundle kakoune-state-save "https://gitlab.com/Screwtapello/kakoune-state-save" %{
-hook global KakBegin .* %{
-    state-save-reg-load colon
-    state-save-reg-load pipe
-    state-save-reg-load slash
+        hook global KakBegin .* %{
+            state-save-reg-load colon
+            state-save-reg-load pipe
+            state-save-reg-load slash
+        }
+        hook global KakEnd .* %{
+            state-save-reg-save colon
+            state-save-reg-save pipe
+            state-save-reg-save slash
+        }
+        hook global FocusOut .* %{ state-save-reg-save dquote }
+        hook global FocusIn  .* %{ state-save-reg-load dquote }
 }
-
-hook global KakEnd .* %{
-    state-save-reg-save colon
-    state-save-reg-save pipe
-    state-save-reg-save slash
-}
-hook global FocusOut .* %{ state-save-reg-save dquote }
-hook global FocusIn  .* %{ state-save-reg-load dquote }
-
-    }
- bundle number-toggle.kak 'https://github.com/evanrelf/number-toggle.kak' %{
-# source "%opt{bundle_path}/number-toggle.kak/rc/number-toggle.kak"
+bundle number-toggle.kak 'https://github.com/evanrelf/number-toggle.kak' %{
+        # source "%opt{bundle_path}/number-toggle.kak/rc/number-toggle.kak"
         require-module "number-toggle"
         set-option -add global number_toggle_params -hlcursor
- }
+}
 
 
 # bundle-noload one.kak https://github.com/raiguard/one.kak %{
- bundle one.kak https://github.com/raiguard/one.kak %{
- colorscheme one-dark
- } %{
-   # Post-install code here...
-   mkdir -p ${kak_config}/colors
-   ln -sf "${kak_opt_bundle_path}/one.kak" "${kak_config}/colors/"
- }
+bundle one.kak https://github.com/raiguard/one.kak %{
+        colorscheme one-dark
+} %{
+       ## Post-install code here...
+       mkdir -p ${kak_config}/colors
+       ln -sf "${kak_opt_bundle_path}/one.kak" "${kak_config}/colors/"
+}
 
 
- bundle kakoune-buffers 'https://github.com/Delapouite/kakoune-buffers' %{
-  # source "%opt{bundle_path}/kakoune-buffers/buffers.kak"
-      # Suggested hook
+bundle kakoune-buffers 'https://github.com/Delapouite/kakoune-buffers' %{
+  ## source "%opt{bundle_path}/kakoune-buffers/buffers.kak"
+  ## Suggested hook
 
 
-  # require-module kakoune-buffers.kak
+  ## require-module kakoune-buffers.kak
   hook global WinDisplay .* info-buffers
 
-     # # Suggested mappings
+     ## Suggested mappings
 
      map global user b ':enter-buffers-mode<ret>'              -docstring 'buffers…'
      map global user B ':enter-user-mode -lock buffers<ret>'   -docstring 'buffers (lock)…'
 
-     # Suggested aliases
+     ## Suggested aliases
 
      alias global bd delete-buffer
      alias global bf buffer-first
      alias global bl buffer-last
      alias global bo buffer-only
      alias global bo! buffer-only-force
+}
+bundle auto-pairs.kak https://github.com/alexherbo2/auto-pairs.kak %{enable-auto-pairs}
+
+bundle kakoune-snippets "https://github.com/occivink/kakoune-snippets"
+
+bundle kakoune-emmet "https://github.com/JJK96/kakoune-emmet"  %{
+	hook global WinSetOption filetype=html %{
+		emmet-enable-autocomplete
+	}
+}
+
+bundle kakoune-focus "https://github.com/caksoylar/kakoune-focus" %{
+    define-command focus-live-enable %{
+        focus-selections
+        hook -group focus window NormalIdle .* %{ focus-extend }
+    }
+    define-command focus-live-disable %{
+        remove-hooks window focus
+        focus-clear
+    }
+    map global user <space> ': focus-toggle<ret>' -docstring "toggle selections focus"
+}
+
+# use tab and shift-tab to navigate the completion menu
+hook global InsertCompletionShow .* %{ map window insert <tab> <c-n>; map window insert <s-tab> <c-p> }
+hook global InsertCompletionHide .* %{ unmap window insert <tab> <c-n>; unmap window insert <s-tab> <c-p> }
+
+
+# YOU WILL NOT FUCK MY EYES
+face global MenuBackground Default
+face global MenuInfo Default
+face global Information Default
+
+add-highlighter global/wrap wrap -word -indent -marker ⤷
+
+
+bundle kak-lsp https://github.com/kak-lsp/kak-lsp %{
+  # Configure here...
+
+ hook global WinSetOption filetype=(rust|python|go|javascript|typescript|c|cpp) %{
+#      eval %sh{kak-lsp --kakoune -s $kak_session}
+    set-option global lsp_hover_anchor true
+    set-option global lsp_auto_show_code_actions true
+    set-face global InlayHint black+i
+    set-face global PrimarySelection default,black,default
+
+    set-option window lsp_diagnostic_line_error_sign "!"
+    set-option window lsp_diagnostic_line_warning_sign "?"
+    set-face window DiagnosticError default+u
+    set-face window DiagnosticWarning default+u
+    set-option global lsp_cmd "kak-lsp -s %val{session} -vvv --log /tmp/kak-lsp.log"
+
+    lsp-enable-window
+
+    # lsp-diagnostic-lines-disable window
+    lsp-inline-diagnostics-disable window
+
+    lsp-auto-hover-enable
+    lsp-auto-signature-help-enable
+    #lsp-inlay-diagnostics-enable window
+    lsp-inlay-hints-enable window
+    lsp-inlay-code-lenses-enable window
+    #lsp-inline-diagnostics-enable window
+
+    ## common options
+
+
+
+
+     map global user l %{:enter-user-mode lsp<ret>} -docstring "LSP mode"
+     map global insert <tab> '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'Select next snippet placeholder'
+     map global object a '<a-semicolon>lsp-object<ret>' -docstring 'LSP any symbol'
+     map global object <a-a> '<a-semicolon>lsp-object<ret>' -docstring 'LSP any symbol'
+     map global object e '<a-semicolon>lsp-object Function Method<ret>' -docstring 'LSP function or method'
+     map global object k '<a-semicolon>lsp-object Class Interface Struct<ret>' -docstring 'LSP class interface or struct'
+     map global object d '<a-semicolon>lsp-diagnostic-object --include-warnings<ret>' -docstring 'LSP errors and warnings'
+     map global object D '<a-semicolon>lsp-diagnostic-object<ret>' -docstring 'LSP errors'
+
+
+
+     ## LSP
+     #declare-user-mode user-lsp
+     #map global user l ':enter-user-mode user-lsp<ret>'      -docstring 'lsp mode'
+     #map global user-lsp a ':lsp-code-actions<ret>'          -docstring 'code action'
+     #map global user-lsp c ':lsp-code-lens<ret>'             -docstring 'execute code lens'
+     #map global user-lsp d ':lsp-diagnostics<ret>'           -docstring 'list diagnostics'
+     #map global user-lsp i ':lsp-incoming-calls<ret>'        -docstring 'incoming calls'
+     #map global user-lsp I ':lsp-implementation<ret>'        -docstring 'list implementations'
+     #map global user-lsp h ':lsp-highlight-references<ret>'  -docstring 'highlight references'
+     #map global user-lsp k ':lsp-hover<ret>'                 -docstring 'hover'
+     #map global user-lsp K ':lsp-hover-buffer<ret>'          -docstring 'hover in a dedicated buffer'
+     #map global user-lsp p ':lsp-workspace-symbol-incr<ret>' -docstring 'pick workspace symbol'
+     #map global user-lsp P ':lsp-workspace-symbol<ret>'      -docstring 'list workspace symbols'
+     #map global user-lsp r ':lsp-references<ret>'            -docstring 'list references'
+     #map global user-lsp R ':lsp-rename-prompt<ret>'         -docstring 'rename'
+     #map global user-lsp o ':lsp-outgoing-calls<ret>'        -docstring 'outgoing calls'
+     #map global user-lsp s ':lsp-goto-document-symbol<ret>'  -docstring 'pick document symbol'
+     #map global user-lsp S ':lsp-document-symbol<ret>'       -docstring 'list workspace symbols'
+     #map global user-lsp x ':lsp-find-error<ret>'            -docstring 'jump to the prev/next error'
+     #map global user-lsp ( ':lsp-previous-function<ret>'     -docstring 'jump to the previous function'
+     #map global user-lsp ) ':lsp-next-function<ret>'         -docstring 'jump to the next function'
+  hook global KakEnd .* lsp-exit
  }
+} %{
+  # Post-install code here...
+    cargo install --locked --force --path .
+    mkdir -p ~/.config/kak-lsp
+    cp -n kak-lsp.toml ~/.config/kak-lsp/
+}
 
 
-#bundle kak-lsp https://github.com/kak-lsp/kak-lsp %{
-#  # Configure here...
-#
-# hook global WinSetOption filetype=(rust|python|go|javascript|typescript|c|cpp) %{
-#     lsp-enable-window
-#
-#     lsp-inlay-hints-enable global
-#
-#     map global user l %{:enter-user-mode lsp<ret>} -docstring "LSP mode"
-#     map global insert <tab> '<a-;>:try lsp-snippets-select-next-placeholders catch %{ execute-keys -with-hooks <lt>tab> }<ret>' -docstring 'Select next snippet placeholder'
-#     map global object a '<a-semicolon>lsp-object<ret>' -docstring 'LSP any symbol'
-#     map global object <a-a> '<a-semicolon>lsp-object<ret>' -docstring 'LSP any symbol'
-#     map global object e '<a-semicolon>lsp-object Function Method<ret>' -docstring 'LSP function or method'
-#     map global object k '<a-semicolon>lsp-object Class Interface Struct<ret>' -docstring 'LSP class interface or struct'
-#     map global object d '<a-semicolon>lsp-diagnostic-object --include-warnings<ret>' -docstring 'LSP errors and warnings'
-#     map global object D '<a-semicolon>lsp-diagnostic-object<ret>' -docstring 'LSP errors'
-# }
-#  hook global KakEnd .* lsp-exit
-#} %{
-#  # Post-install code here...
-#    cargo install --locked --force --path .
-#    mkdir -p ~/.config/kak-lsp
-#    cp -n kak-lsp.toml ~/.config/kak-lsp/
-#}
+
 
 # bundle-noload kamp https://github.com/vbauerster/kamp %{
 # bundle kamp "git clone -b v0.2.1 https://github.com/vbauerster/kamp" %{
@@ -150,8 +220,14 @@ hook global FocusIn  .* %{ state-save-reg-load dquote }
 
 
 
- set-option global ui_options terminal_status_on_top=true
- set-face global CurSearch +u
+set-option global ui_options terminal_status_on_top=true
+set-face global CurSearch +u
+
+
+add-highlighter global/git-diff flag-lines Default git_diff_flags
+add-highlighter global/number-lines number-lines -hlcursor
+add-highlighter global/hl-col-120 column 120 black+r
+
 
 ## Enable editor config
  ## ────────────────────
@@ -162,12 +238,12 @@ hook global FocusIn  .* %{ state-save-reg-load dquote }
 # ## Filetype specific hooks
 # ## ───────────────────────
 # #
- hook global WinSetOption filetype=(c|cpp) %{
+hook global WinSetOption filetype=(c|cpp) %{
      clang-enable-autocomplete
      clang-enable-diagnostics
      alias window lint clang-parse
      alias window lint-next-error clang-diagnostics-next
- }
+}
 
 # hook global WinSetOption filetype=python %{
 #     jedi-enable-autocomplete
@@ -182,29 +258,29 @@ map -docstring "xml tag objet" global object t %{c<lt>([\w.]+)\b[^>]*?(?<lt>!/)>
 #
 set-face global CurWord +b
 
- hook global NormalIdle .* %{
+hook global NormalIdle .* %{
      eval -draft %{ try %{
          exec ,<a-i>w <a-k>\A\w+\z<ret>
          add-highlighter -override global/curword regex "\b\Q%val{selection}\E\b" 0:CurWord
      } catch %{
          add-highlighter -override global/curword group
      } }
- }
+}
  #
  ## Switch cursor color in insert mode
  ## ──────────────────────────────────
  #
- set-face global InsertCursor default,green+B
+set-face global InsertCursor default,green+B
 
- hook global ModeChange .*:.*:insert %{
+hook global ModeChange .*:.*:insert %{
      set-face window PrimaryCursor InsertCursor
      set-face window PrimaryCursorEol InsertCursor
  }
 
- hook global ModeChange .*:insert:.* %{ try %{
+hook global ModeChange .*:insert:.* %{ try %{
      unset-face window PrimaryCursor
      unset-face window PrimaryCursorEol
- } }
+} }
 
  ## Custom mappings
  ## ───────────────
@@ -253,8 +329,8 @@ set-face global CurWord +b
 # ## add-highlighter global/ number-lines -hlcursor -relative -separator "  " -cursor-separator " |"
 #add-highlighter global/ show-matching
 
-set-option global tabstop 8
-set-option global indentwidth 4
+set-option global tabstop 28
+set-option global indentwidth 2
 
 ## use spaces instead of tabs
 map global insert <tab> '<a-;><gt>'
@@ -268,7 +344,7 @@ map global normal <c-/>  ":comment-line<ret>"
 hook global BufWritePre .* %{ try %{ execute-keys -draft \%s\h+$<ret>d } }
 
 ## use ripgrep as regex search tool
-set global grepcmd 'rg --column'
+set global grepcmd '/opt/homebrew/bin/rg --column'
 
 
 # declare-option str brootcmd "%val{config}/kak_open"
@@ -333,9 +409,9 @@ def suspend-and-resume \
             ;;
     esac
 
-     ## Uses platforms automation to schedule the typing of our cli command
+    ## Uses platforms automation to schedule the typing of our cli command
     nohup sh -c "$automate_cmd"  > /dev/null 2>&1 &
-     Send kakoune client to the background
+    ## Send kakoune client to the background
     $kill_cmd -SIGTSTP $kak_client_pid
 
      ## ...At this point the kakoune client is paused until the " && fg " gets run in the $automate_cmd
@@ -354,9 +430,10 @@ def for-each-line \
     %{ evaluate-commands %sh{
 
     while read f; do
-        printf "$1 $f\n"
+        printf "$1 '$f'\n"
     done < "$2"
 }}
+
 
 def toggle-broot %{
         # "broot -c :open_preview > /tmp/broot-files-%val{client_pid}" \
@@ -366,7 +443,7 @@ def toggle-broot %{
 
 }
 
-map global user b ': toggle-broot<ret>' -docstring 'select files in broot'
+map global user / ': toggle-broot<ret>' -docstring 'select files in broot'
 
 
 ## map global user -docstring 'open file with broot' r ':broot-edit<ret>'
@@ -461,3 +538,89 @@ map global user b ': toggle-broot<ret>' -docstring 'select files in broot'
 #   ## # Terminal
 #   ## >
 # #}
+hook global BufCreate .*\.(conf) %{ set buffer filetype conf }
+map global insert <c-w>   '<esc>bdi'
+
+### git
+#declare-user-mode git
+#map global user g ':enter-user-mode git<ret>' -docstring 'git mode'
+#map global git p ':git prev-hunk<ret>'        -docstring 'goto previous hunk'
+#map global git n ':git next-hunk<ret>'        -docstring 'goto next hunk'
+
+
+
+
+## kitty integration
+define-command -hidden kitty-split -params 1 -docstring 'split the current window according to the param (vsplit / hsplit)' %{
+  nop %sh{
+    kitty @ launch --no-response --location $1 kak -c $kak_session
+  }
+}
+
+## zellij integration
+define-command -hidden zellij-split -params 1 -docstring 'split (down / right)' %{
+  nop %sh{
+    zellij action new-pane -cd $1 -- kak -c $kak_session
+  }
+}
+
+define-command -hidden zellij-move-pane -params 1 -docstring 'move to pane' %{
+  nop %sh{
+    zellij action move-focus $1
+  }
+}
+
+
+## Some pickers
+define-command -hidden open_buffer_picker %{
+  prompt buffer: -menu -buffer-completion %{
+    buffer %val{text}
+  }
+}
+
+define-command -hidden open_file_picker %{
+  prompt file: -menu -shell-script-candidates 'fd --type=file' %{
+    edit -existing %val{text}
+  }
+}
+
+define-command -hidden open_rg_picker %{
+  prompt search: %{
+    prompt refine: -menu -shell-script-candidates "rg -in '%val{text}'" %{
+      eval "edit -existing  %sh{(cut -d ' ' -f 1 | tr ':' ' ' ) <<< $kak_text}"
+    }
+  }
+}
+
+
+## pickers
+map global user b ':open_buffer_picker<ret>' -docstring 'pick buffer'
+map global user f ':open_file_picker<ret>'   -docstring 'pick file'
+map global user / ':open_rg_picker<ret>'     -docstring 'search project'
+
+
+
+#### Inspirations:
+# https://git.sr.ht/~raiguard/dotfiles/tree/master/item/.config/kak/kakrc#L514
+#https://github.com/phaazon/config/blob/054ea8110f59c53876e66e6ee30da180bea34ff6/kak/kakrc#L4
+#
+
+
+hook global WinCreate .* %{ try %{
+    add-highlighter buffer/numbers  number-lines -hlcursor
+    add-highlighter buffer/matching show-matching
+    add-highlighter buffer/wrap     wrap -word -indent
+    add-highlighter buffer/todo     regex \b(TODO|FIXME|XXX|NOTE)\b 0:default+rb
+}}
+
+hook global BufOpenFile  .* modeline-parse
+hook global BufWritePre  .* %{ nop %sh{ mkdir -p $(dirname "$kak_hook_param") }}
+hook global BufWritePost .* %{ git show-diff }
+hook global BufReload    .* %{ git show-diff }
+hook global WinDisplay   .* %{ evaluate-commands %sh{
+    cd "$(dirname "$kak_buffile")"
+    project_dir="$(git rev-parse --show-toplevel 2>/dev/null)"
+    [ -n "$project_dir" ] && dir="$project_dir" || dir="${PWD%/.git}"
+    printf "cd %%{%s}\n" "$dir"
+    [ -n "$project_dir" ] && [ "$kak_buffile" = "${kak_buffile#\*}" ] && printf "git show-diff"
+} }
